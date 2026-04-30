@@ -175,10 +175,22 @@ class ReactomeGraph(nx.MultiDiGraph):
             try:
                 source = dict(record['source']['data'])
                 target = dict(record['target']['data'])
+
+                # bipartite networkx convention
+                source["bipartite"] = (
+                    EVENT if "Event" in record["source"]["labels"]
+                    else ENTITY
+                )
+                target["bipartite"] = (
+                    EVENT if "Event" in record["target"]["labels"]
+                    else ENTITY
+                )
+
                 relationship = {
                     **dict(record['relationship']['data']),
                     'type': record['relationship']['type']
                 }
+
             except (ValueError, TypeError, KeyError):
                 continue
 
@@ -189,23 +201,12 @@ class ReactomeGraph(nx.MultiDiGraph):
                 'positiveRegulator',
                 'negativeRegulator'
             ]:
-                t = {**source}
-                source = {**target}
-                target = t
-
-            # bipartite networkx convention
-            source['bipartite'] = (
-                EVENT if 'Event' in record['source']['labels']
-                else ENTITY)
+                source, target = target, source
 
             if relationship['type'] == 'referenceEntity':
                 source['referenceEntity'] = target
                 nodes[source['stId']] = source
             else:
-                target['bipartite'] = (
-                    EVENT if 'Event' in record['target']['labels']
-                    else ENTITY)
-
                 nodes[source['stId']] = source
                 nodes[target['stId']] = target
                 edges.append((source['stId'], target['stId'], relationship))
